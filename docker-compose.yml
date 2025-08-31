@@ -31,12 +31,12 @@ services:
         container_name: pizza_db
         restart: unless-stopped
         environment:
-            MYSQL_ROOT_PASSWORD: root
+            MYSQL_ROOT_PASSWORD: 123qwe
             MYSQL_DATABASE: pizza
-            MYSQL_USER: root
+            MYSQL_USER: user
             MYSQL_PASSWORD: 123qwe
         ports:
-            - "3306:3306"
+            - "3307:3306"
         volumes:
             - dbdata:/var/lib/mysql
         networks:
