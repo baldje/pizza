@@ -1,6 +1,6 @@
 <?php
 
-// app/Http/Controllers/OrderController.php
+// app/Http/Controllers/OrderAdminController.php
 
 namespace App\Http\Controllers;
 
