@@ -10,8 +10,14 @@ class AdminController extends Controller
     //
     public function index()
     {
-
-        // Для примера просто возвращаем view 'admin.dashboard'
-        return view('admin.dashboard');
+        return response()->json([
+            'success' => true,
+            'message' => 'Админ панель',
+            'data' => [
+                'users_count' => \App\Models\User::count(),
+                'products_count' => \App\Models\Product::count(),
+                'orders_count' => \App\Models\Order::count(),
+            ]
+        ]);
     }
 }

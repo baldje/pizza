@@ -10,7 +10,7 @@ class ProductTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_index_lists_products(): void
+    public function test_index_lists_products()
     {
         Product::factory()->count(3)->create();
 
@@ -19,7 +19,7 @@ class ProductTest extends TestCase
             ->assertJsonCount(3);
     }
 
-    public function test_store_creates_product(): void
+    public function test_store_creates_product()
     {
         $payload = [
             'name' => 'Margherita',
@@ -33,7 +33,7 @@ class ProductTest extends TestCase
             ->assertJsonFragment(['name' => 'Margherita']);
     }
 
-    public function test_show_returns_product(): void
+    public function test_show_returns_product()
     {
         $product = Product::factory()->create();
 
@@ -42,7 +42,7 @@ class ProductTest extends TestCase
             ->assertJson(['id' => $product->id]);
     }
 
-    public function test_update_updates_product(): void
+    public function test_update_updates_product()
     {
         $product = Product::factory()->create();
 
@@ -51,7 +51,7 @@ class ProductTest extends TestCase
             ->assertJsonFragment(['name' => 'New Name']);
     }
 
-    public function test_destroy_deletes_product(): void
+    public function test_destroy_deletes_product()
     {
         $product = Product::factory()->create();
 

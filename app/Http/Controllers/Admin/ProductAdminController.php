@@ -3,65 +3,191 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Validation\ExceptionHandler;
+use App\Http\Controllers\Validation\ValidationRules;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ProductAdminController extends Controller
 {
-    // Показать список товаров
+    /**
+     * Список товаров
+     */
     public function index()
     {
-        $products = Product::all();
-        return view('admin.products.index', compact('products'));
+        try {
+            $products = Product::all();
+
+            return response()->json([
+                'success'  => true,
+                'message'  => 'Список товаров',
+                'products' => $products,
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('ProductAdminController index error: ' . $e->getMessage());
+            return ExceptionHandler::handle(request(), $e);
+        }
     }
 
-    // Показать форму создания товара
+    /**
+     * Просмотр конкретного товара
+     */
+    public function show($id)
+    {
+        try {
+            $product = Product::find($id);
+
+            if (!$product) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Товар не найден',
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Товар получен',
+                'product' => $product,
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error("ProductAdminController show error - ID: $id - " . $e->getMessage());
+            return ExceptionHandler::handle(request(), $e);
+        }
+    }
+
+    /**
+     * Форма создания товара
+     */
     public function create()
     {
-        return view('admin.products.create');
+        try {
+            return response()->json([
+                'success'    => true,
+                'message'    => 'Форма создания товара',
+                'categories' => ['pizza', 'drink', 'snack', 'dessert'],
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('ProductAdminController create error: ' . $e->getMessage());
+            return ExceptionHandler::handle(request(), $e);
+        }
     }
 
-    // Сохранить новый товар
+    /**
+     * Создание товара
+     */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'stock' => 'required|integer|min:0',
-        ]);
+        try {
+            $validated = $request->validate(
+                ValidationRules::getRules('store_product'),
+                ValidationRules::getMessages('store_product')
+            );
 
-        Product::create($validated);
+            $product = DB::transaction(function () use ($validated) {
+                return Product::create($validated);
+            });
 
-        return redirect()->route('admin.products.index')->with('success', 'Товар создан');
+            return response()->json([
+                'success' => true,
+                'message' => 'Товар создан',
+                'product' => $product,
+            ], 201);
+        } catch (\Exception $e) {
+            Log::error("ProductAdminController store error: " . $e->getMessage());
+            return ExceptionHandler::handle($request, $e);
+        }
     }
 
-    // Показать форму редактирования товара
-    public function edit(Product $product)
+    /**
+     * Форма редактирования товара
+     */
+    public function edit($id)
     {
-        return view('admin.products.edit', compact('product'));
+        try {
+            $product = Product::find($id);
+
+            if (!$product) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Товар не найден',
+                ], 404);
+            }
+
+            return response()->json([
+                'success'    => true,
+                'message'    => 'Форма редактирования товара',
+                'product'    => $product,
+                'categories' => ['pizza', 'drink', 'snack', 'dessert'],
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error("ProductAdminController edit error - ID: $id - " . $e->getMessage());
+            return ExceptionHandler::handle(request(), $e);
+        }
     }
 
-    // Обновить товар
-    public function update(Request $request, Product $product)
+    /**
+     * Обновление товара
+     */
+    public function update(Request $request, $id)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'stock' => 'required|integer|min:0',
-        ]);
+        try {
+            $product = Product::find($id);
 
-        $product->update($validated);
+            if (!$product) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Товар не найден',
+                ], 404);
+            }
 
-        return redirect()->route('admin.products.index')->with('success', 'Товар обновлен');
+            $validated = $request->validate(
+                ValidationRules::getRules('update_product'),
+                ValidationRules::getMessages('update_product')
+            );
+
+            DB::transaction(function () use ($product, $validated) {
+                $product->update($validated);
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Товар обновлён',
+                'product' => $product->fresh(),
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error("ProductAdminController update error - ID: $id - " . $e->getMessage());
+            return ExceptionHandler::handle($request, $e);
+        }
     }
 
-    // Удалить товар
-    public function destroy(Product $product)
+    /**
+     * Удаление товара
+     */
+    public function destroy($id)
     {
-        $product->delete();
+        try {
+            $product = Product::find($id);
 
-        return redirect()->route('admin.products.index')->with('success', 'Товар удалён');
+            if (!$product) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Товар не найден',
+                ], 404);
+            }
+
+            DB::transaction(function () use ($product) {
+                $product->delete();
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Товар удалён',
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error("ProductAdminController destroy error - ID: $id - " . $e->getMessage());
+            return ExceptionHandler::handle(request(), $e);
+        }
     }
 }

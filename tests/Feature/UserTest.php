@@ -10,7 +10,7 @@ class UserTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_index_lists_users(): void
+    public function test_index_lists_users()
     {
         User::factory()->count(2)->create();
 
@@ -21,7 +21,7 @@ class UserTest extends TestCase
             ]);
     }
 
-    public function test_store_creates_user(): void
+    public function test_store_creates_user()
     {
         $payload = [
             'name' => 'Alice',
@@ -34,7 +34,7 @@ class UserTest extends TestCase
             ->assertJsonFragment(['email' => 'alice@example.com']);
     }
 
-    public function test_show_returns_user(): void
+    public function test_show_returns_user()
     {
         $user = User::factory()->create();
 
@@ -43,7 +43,7 @@ class UserTest extends TestCase
             ->assertJson(['id' => $user->id]);
     }
 
-    public function test_update_updates_user(): void
+    public function test_update_updates_user()
     {
         $user = User::factory()->create();
 
@@ -52,7 +52,7 @@ class UserTest extends TestCase
             ->assertJsonFragment(['name' => 'Bob']);
     }
 
-    public function test_destroy_deletes_user(): void
+    public function test_destroy_deletes_user()
     {
         $user = User::factory()->create();
 
