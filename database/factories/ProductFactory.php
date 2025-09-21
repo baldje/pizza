@@ -9,13 +9,13 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class ProductFactory extends Factory
 {
-    public function definition(): array
+    public function definition()
     {
         return [
-            'name' => $this->faker->words(3, true),
-            'description' => $this->faker->sentence(10),
-            'price' => $this->faker->randomFloat(2, 1, 1000),
-            'category' => $this->faker->randomElement(['pizza', 'drinks', 'desserts']),
+            'name' => $this->faker->word,
+            'description' => $this->faker->sentence,
+            'price' => $this->faker->randomFloat(2, 5, 50),
+            'category' => $this->faker->randomElement(['pizza', 'drink', 'snack', 'dessert']),
         ];
     }
 }

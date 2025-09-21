@@ -10,13 +10,14 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class OrderFactory extends Factory
 {
-    public function definition(): array
+    // database/factories/OrderFactory.php
+    public function definition()
     {
         return [
             'user_id' => User::factory(),
-            'status' => $this->faker->randomElement(['pending', 'paid', 'shipped', 'delivered', 'cancelled']),
-            'delivery_time' => $this->faker->dateTimeBetween('+1 hour', '+3 days'),
-            'delivery_address' => $this->faker->address(),
+            'status' => $this->faker->randomElement(['delivering','delivered', 'in_progress', 'canceled']),
+            'delivery_time' => now()->addDays(2),
+            'delivery_address' => $this->faker->address,
         ];
     }
 }

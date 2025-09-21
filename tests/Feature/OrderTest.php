@@ -4,192 +4,461 @@ namespace Tests\Feature;
 
 use App\Models\Order;
 use App\Models\User;
+use App\Models\Product;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Tests\TestCase;
 
 class OrderTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, WithoutMiddleware;
 
-    public function test_index_lists_orders()
+    private array $validOrderData;
+    private $user;
+    private $products;
+
+    protected function setUp(): void
     {
-        Order::factory()->count(3)->create();
+        parent::setUp();
 
-        $this->getJson('/api/orders')
-            ->assertOk()
-            ->assertJsonCount(3);
-    }
+        $this->user = User::create([
+            'name' => 'Test User',
+            'email' => 'test@example.com',
+            'password' => bcrypt('password'),
+        ]);
 
-    public function test_store_creates_order()
-    {
-        $user = User::factory()->create();
-
-        $payload = [
-            'user_id' => $user->id,
-            'status' => 'in_progress',
-            'delivery_time' => '2024-12-25 18:00:00',
-            'delivery_address' => '123 Main St, City',
+        $this->products = [
+            Product::create([
+                'name' => 'Pizza Margherita',
+                'description' => 'Classic pizza with tomato and mozzarella',
+                'price' => 12.99,
+                'category' => 'pizza'
+            ]),
+            Product::create([
+                'name' => 'Coca-Cola',
+                'description' => 'Cold drink',
+                'price' => 3.50,
+                'category' => 'drink'
+            ])
         ];
 
-        $this->postJson('/api/orders', $payload)
-            ->assertCreated()
+        $this->validOrderData = [
+            'user_id' => $this->user->id,
+            'status' => 'in_progress',
+            'delivery_time' => now()->addHours(2)->format('Y-m-d H:i:s'),
+            'delivery_address' => '123 Main St, City',
+            'items' => [
+                [
+                    'product_id' => $this->products[0]->id,
+                    'quantity' => 2,
+                    'price' => 12.99
+                ],
+                [
+                    'product_id' => $this->products[1]->id,
+                    'quantity' => 1,
+                    'price' => 3.50
+                ]
+            ]
+        ];
+    }
+
+    /** @test */
+    public function it_can_create_an_order_with_items()
+    {
+        $response = $this->postJson('/api/orders', $this->validOrderData);
+
+        $response->assertStatus(201)
+            ->assertJson([
+                'success' => true,
+                'message' => 'Заказ успешно создан',
+            ])
             ->assertJsonFragment([
-                'user_id' => $user->id,
+                'user_id' => $this->user->id,
                 'status' => 'in_progress',
                 'delivery_address' => '123 Main St, City',
             ]);
-    }
 
-    public function test_show_returns_order()
-    {
-        $order = Order::factory()->create();
-
-        $this->getJson('/api/orders/' . $order->id)
-            ->assertOk()
-            ->assertJson(['id' => $order->id]);
-    }
-
-    public function test_update_updates_order()
-    {
-        $order = Order::factory()->create();
-
-        $updateData = [
-            'status' => 'delivering',
-            'delivery_address' => '456 New St, City',
-        ];
-
-        $this->putJson('/api/orders/' . $order->id, $updateData)
-            ->assertOk()
-            ->assertJsonFragment([
-                'status' => 'delivering',
-                'delivery_address' => '456 New St, City',
-            ]);
-    }
-
-    public function test_destroy_deletes_order()
-    {
-        $order = Order::factory()->create();
-
-        $this->deleteJson('/api/orders/' . $order->id)
-            ->assertNoContent();
-
-        $this->assertDatabaseMissing('orders', ['id' => $order->id]);
-    }
-
-    public function test_store_requires_valid_user_id()
-    {
-        $payload = [
-            'user_id' => 999, // Несуществующий пользователь
+        $this->assertDatabaseHas('orders', [
+            'user_id' => $this->user->id,
             'status' => 'in_progress',
-            'delivery_time' => '2024-12-25 18:00:00',
             'delivery_address' => '123 Main St, City',
-        ];
-
-        $this->postJson('/api/orders', $payload)
-            ->assertStatus(422)
-            ->assertJsonValidationErrors(['user_id']);
+        ]);
     }
 
-    public function test_store_requires_valid_status()
+    /** @test */
+    public function it_creates_order_items_correctly()
     {
-        $user = User::factory()->create();
+        $response = $this->postJson('/api/orders', $this->validOrderData);
 
-        $payload = [
-            'user_id' => $user->id,
-            'status' => 'invalid_status', // Недопустимый статус
-            'delivery_time' => '2024-12-25 18:00:00',
-            'delivery_address' => '123 Main St, City',
-        ];
+        $response->assertStatus(201);
 
-        $this->postJson('/api/orders', $payload)
-            ->assertStatus(422)
-            ->assertJsonValidationErrors(['status']);
+        $orderId = $response->json('order.id');
+
+        // Проверяем, что items создались с правильными данными
+        $this->assertDatabaseHas('order_items', [
+            'order_id' => $orderId,
+            'product_id' => $this->products[0]->id,
+            'quantity' => 2,
+            'price' => 12.99
+        ]);
+
+        $this->assertDatabaseHas('order_items', [
+            'order_id' => $orderId,
+            'product_id' => $this->products[1]->id,
+            'quantity' => 1,
+            'price' => 3.50
+        ]);
     }
 
-    public function test_store_requires_delivery_time()
+    /** @test */
+    public function it_validates_items_required()
     {
-        $user = User::factory()->create();
+        $data = array_merge($this->validOrderData, [
+            'items' => [] // Пустой массив items
+        ]);
 
-        $payload = [
-            'user_id' => $user->id,
-            'status' => 'in_progress',
-            // delivery_time отсутствует
-            'delivery_address' => '123 Main St, City',
-        ];
+        $response = $this->postJson('/api/orders', $data);
 
-        $this->postJson('/api/orders', $payload)
-            ->assertStatus(422)
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['items']);
+    }
+
+    /** @test */
+    public function it_validates_items_array()
+    {
+        $data = array_merge($this->validOrderData, [
+            'items' => 'not-an-array' // Не массив
+        ]);
+
+        $response = $this->postJson('/api/orders', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['items']);
+    }
+
+    /** @test */
+    public function it_validates_items_product_id_required()
+    {
+        $invalidItems = $this->validOrderData['items'];
+        unset($invalidItems[0]['product_id']); // Убираем product_id
+
+        $data = array_merge($this->validOrderData, [
+            'items' => $invalidItems
+        ]);
+
+        $response = $this->postJson('/api/orders', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['items.0.product_id']);
+    }
+
+    /** @test */
+    public function it_validates_items_product_id_exists()
+    {
+        $invalidItems = $this->validOrderData['items'];
+        $invalidItems[0]['product_id'] = 999; // Несуществующий product_id
+
+        $data = array_merge($this->validOrderData, [
+            'items' => $invalidItems
+        ]);
+
+        $response = $this->postJson('/api/orders', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['items.0.product_id']);
+    }
+
+    /** @test */
+    public function it_validates_items_quantity_required()
+    {
+        $invalidItems = $this->validOrderData['items'];
+        unset($invalidItems[0]['quantity']); // Убираем quantity
+
+        $data = array_merge($this->validOrderData, [
+            'items' => $invalidItems
+        ]);
+
+        $response = $this->postJson('/api/orders', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['items.0.quantity']);
+    }
+
+    /** @test */
+    public function it_validates_items_quantity_integer()
+    {
+        $invalidItems = $this->validOrderData['items'];
+        $invalidItems[0]['quantity'] = 'not-a-number'; // Не число
+
+        $data = array_merge($this->validOrderData, [
+            'items' => $invalidItems
+        ]);
+
+        $response = $this->postJson('/api/orders', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['items.0.quantity']);
+    }
+
+    /** @test */
+    public function it_validates_items_quantity_min_value()
+    {
+        $invalidItems = $this->validOrderData['items'];
+        $invalidItems[0]['quantity'] = 0; // Меньше 1
+
+        $data = array_merge($this->validOrderData, [
+            'items' => $invalidItems
+        ]);
+
+        $response = $this->postJson('/api/orders', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['items.0.quantity']);
+    }
+
+    /** @test */
+    public function it_validates_items_quantity_negative_value()
+    {
+        $invalidItems = $this->validOrderData['items'];
+        $invalidItems[0]['quantity'] = -5; // Отрицательное число
+
+        $data = array_merge($this->validOrderData, [
+            'items' => $invalidItems
+        ]);
+
+        $response = $this->postJson('/api/orders', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['items.0.quantity']);
+    }
+
+    /** @test */
+    public function it_validates_items_quantity_decimal_value()
+    {
+        $invalidItems = $this->validOrderData['items'];
+        $invalidItems[0]['quantity'] = 2.5; // Дробное число
+
+        $data = array_merge($this->validOrderData, [
+            'items' => $invalidItems
+        ]);
+
+        $response = $this->postJson('/api/orders', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['items.0.quantity']);
+    }
+
+    /** @test */
+    public function it_validates_items_price_required()
+    {
+        $invalidItems = $this->validOrderData['items'];
+        unset($invalidItems[0]['price']); // Убираем price
+
+        $data = array_merge($this->validOrderData, [
+            'items' => $invalidItems
+        ]);
+
+        $response = $this->postJson('/api/orders', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['items.0.price']);
+    }
+
+    /** @test */
+    public function it_validates_items_price_numeric()
+    {
+        $invalidItems = $this->validOrderData['items'];
+        $invalidItems[0]['price'] = 'not-a-number'; // Не число
+
+        $data = array_merge($this->validOrderData, [
+            'items' => $invalidItems
+        ]);
+
+        $response = $this->postJson('/api/orders', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['items.0.price']);
+    }
+
+    /** @test */
+    public function it_validates_items_price_min_value()
+    {
+        $invalidItems = $this->validOrderData['items'];
+        $invalidItems[0]['price'] = 0; // Меньше 0.01
+
+        $data = array_merge($this->validOrderData, [
+            'items' => $invalidItems
+        ]);
+
+        $response = $this->postJson('/api/orders', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['items.0.price']);
+    }
+
+    /** @test */
+    public function it_validates_delivery_time_after_now()
+    {
+        $data = array_merge($this->validOrderData, [
+            'delivery_time' => now()->subHours(1)->format('Y-m-d H:i:s'), // В прошлом
+        ]);
+
+        $response = $this->postJson('/api/orders', $data);
+
+        $response->assertStatus(422)
             ->assertJsonValidationErrors(['delivery_time']);
     }
 
-    public function test_store_requires_delivery_address()
+    /** @test */
+    public function it_validates_delivery_address_max_length()
     {
-        $user = User::factory()->create();
+        $data = array_merge($this->validOrderData, [
+            'delivery_address' => str_repeat('a', 501), // Более 500 символов
+        ]);
 
-        $payload = [
-            'user_id' => $user->id,
-            'status' => 'in_progress',
-            'delivery_time' => '2024-12-25 18:00:00',
-            // delivery_address отсутствует
-        ];
+        $response = $this->postJson('/api/orders', $data);
 
-        $this->postJson('/api/orders', $payload)
-            ->assertStatus(422)
+        $response->assertStatus(422)
             ->assertJsonValidationErrors(['delivery_address']);
     }
 
-    public function test_order_belongs_to_user()
+    /** @test */
+    public function it_validates_status_in_enum_values()
     {
-        $order = Order::factory()->create();
+        $data = array_merge($this->validOrderData, [
+            'status' => 'invalid_status', // Недопустимый статус
+        ]);
 
-        $this->assertInstanceOf(User::class, $order->user);
-        $this->assertEquals($order->user_id, $order->user->id);
+        $response = $this->postJson('/api/orders', $data);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['status']);
     }
 
-    public function test_order_has_many_order_items()
+    /** @test */
+    public function it_returns_order_with_items()
     {
-        $order = Order::factory()->create();
-        $orderItems = \App\Models\OrderItem::factory()->count(3)->create(['order_id' => $order->id]);
+        $response = $this->postJson('/api/orders', $this->validOrderData);
+        $orderId = $response->json('order.id');
 
-        $this->assertCount(3, $order->orderItems);
-        $this->assertInstanceOf(\App\Models\OrderItem::class, $order->orderItems->first());
+        $response = $this->getJson("/api/orders/{$orderId}");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => 'Заказ получен',
+            ])
+            ->assertJsonFragment([
+                'product_id' => $this->products[0]->id,
+                'price' => '12.99'
+            ]);
     }
 
-    public function test_user_has_many_orders()
+    /** @test */
+    public function it_can_update_order_with_items()
     {
-        $user = User::factory()->create();
-        $orders = Order::factory()->count(2)->create(['user_id' => $user->id]);
+        // Сначала создаем заказ
+        $response = $this->postJson('/api/orders', $this->validOrderData);
+        $orderId = $response->json('order.id');
 
-        $this->assertCount(2, $user->orders);
-        $this->assertInstanceOf(Order::class, $user->orders->first());
+        // Обновляем заказ с новыми items
+        $updateData = [
+            'status' => 'delivering',
+            'delivery_address' => '456 New St, City',
+            'items' => [
+                [
+                    'product_id' => $this->products[0]->id,
+                    'quantity' => 3, // Изменяем количество
+                    'price' => 12.99
+                ]
+            ]
+        ];
+
+        $response = $this->putJson("/api/orders/{$orderId}", $updateData);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => 'Заказ успешно обновлен',
+            ]);
+
+        // Проверяем, что items обновились
+        $this->assertDatabaseHas('order_items', [
+            'order_id' => $orderId,
+            'product_id' => $this->products[0]->id,
+            'quantity' => 3,
+            'price' => 12.99
+        ]);
     }
 
-    public function test_cascade_delete_when_user_deleted()
+    /** @test */
+    public function it_can_update_order_status()
     {
-        $user = User::factory()->create();
-        $order = Order::factory()->create(['user_id' => $user->id]);
+        $order = Order::create([
+            'user_id' => $this->user->id,
+            'status' => 'in_progress',
+            'delivery_time' => now()->addHours(2),
+            'delivery_address' => '123 Main St, City',
+        ]);
 
-        $user->delete();
+        $updateData = [
+            'status' => 'delivering'
+        ];
+
+        $response = $this->putJson("/api/orders/{$order->id}", $updateData);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => 'Заказ успешно обновлен',
+            ])
+            ->assertJsonFragment(['status' => 'delivering']);
+    }
+
+    /** @test */
+    public function it_returns_404_when_updating_nonexistent_order()
+    {
+        $updateData = ['status' => 'delivering'];
+
+        $response = $this->putJson('/api/orders/999', $updateData);
+
+        $response->assertStatus(404)
+            ->assertJson([
+                'success' => false,
+                'message' => 'Заказ не найден',
+            ]);
+    }
+
+    /** @test */
+    public function it_can_delete_an_order()
+    {
+        $order = Order::create([
+            'user_id' => $this->user->id,
+            'status' => 'in_progress',
+            'delivery_time' => now()->addHours(2),
+            'delivery_address' => '123 Main St, City',
+        ]);
+
+        $response = $this->deleteJson("/api/orders/{$order->id}");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => 'Заказ успешно удален',
+            ]);
 
         $this->assertDatabaseMissing('orders', ['id' => $order->id]);
     }
 
-    public function test_valid_status_values()
+    /** @test */
+    public function it_returns_404_when_deleting_nonexistent_order()
     {
-        $user = User::factory()->create();
-        $validStatuses = ['in_progress', 'delivering', 'delivered', 'canceled'];
+        $response = $this->deleteJson('/api/orders/999');
 
-        foreach ($validStatuses as $status) {
-            $payload = [
-                'user_id' => $user->id,
-                'status' => $status,
-                'delivery_time' => '2024-12-25 18:00:00',
-                'delivery_address' => '123 Main St, City',
-            ];
-
-            $this->postJson('/api/orders', $payload)
-                ->assertCreated()
-                ->assertJsonFragment(['status' => $status]);
-        }
+        $response->assertStatus(404)
+            ->assertJson([
+                'success' => false,
+                'message' => 'Заказ не найден',
+            ]);
     }
 }

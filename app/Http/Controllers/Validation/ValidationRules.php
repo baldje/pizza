@@ -21,9 +21,9 @@ class ValidationRules
             ],
 
             'update_user' => [
-                'name' => 'required|string|max:255',
-                'email' => 'required|string|email|max:255|unique:users,email,{id}',
-                'password' => 'nullable|string|min:6',
+                'name' => 'sometimes|required|string|max:255',
+                'email' => 'sometimes|required|string|email|max:255|unique:users,email,{id}',
+                'password' => 'sometimes|required|string|min:6',
                 'phone' => 'nullable|string',
                 'address' => 'nullable|string',
                 'is_admin' => 'boolean',
@@ -59,7 +59,7 @@ class ValidationRules
                 'delivery_address' => 'sometimes|required|string|max:500',
                 'items' => 'sometimes|required|array|min:1',
                 'items.*.product_id' => 'required_with:items|exists:products,id',
-                'items.*.quantity' => 'required_with:items|integer|min:1',
+                'items.*.quantity' => 'required|integer|min:1',
                 'items.*.price' => 'required_with:items|numeric|min:0.01',
             ],
 
@@ -73,8 +73,6 @@ class ValidationRules
                 'description' => 'required|string',
                 'price' => 'required|numeric|min:0.01',
                 'category' => 'required|string|in:pizza,drink,snack,dessert',
-                'stock_quantity' => 'required|integer|min:0',
-                'image_url' => 'nullable|string|url',
             ],
 
             'update_product' => [
@@ -82,8 +80,6 @@ class ValidationRules
                 'description' => 'sometimes|required|string',
                 'price' => 'sometimes|required|numeric|min:0.01',
                 'category' => 'sometimes|required|string|in:pizza,drink,snack,dessert',
-                'stock_quantity' => 'sometimes|required|integer|min:0',
-                'image_url' => 'nullable|string|url',
             ],
 
 
@@ -162,6 +158,7 @@ class ValidationRules
                 'items.*.product_id.required' => 'ID товара обязательно для заполнения',
                 'items.*.product_id.exists' => 'Товар не найден',
                 'items.*.quantity.required' => 'Количество обязательно для заполнения',
+                'items.*.quantity.integer' => 'Количество должно быть целым числом',
                 'items.*.quantity.min' => 'Количество должно быть не менее 1',
                 'items.*.price.required' => 'Цена обязательна для заполнения',
                 'items.*.price.min' => 'Цена должна быть положительной',
@@ -182,9 +179,6 @@ class ValidationRules
                 'price.min' => 'Цена должна быть положительной',
                 'category.required' => 'Категория обязательна для заполнения',
                 'category.in' => 'Недопустимая категория товара',
-                'stock_quantity.required' => 'Количество на складе обязательно для заполнения',
-                'stock_quantity.integer' => 'Количество должно быть целым числом',
-                'stock_quantity.min' => 'Количество не может быть отрицательным',
             ],
 
             // OrderItem messages

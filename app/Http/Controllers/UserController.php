@@ -96,7 +96,6 @@ class UserController extends Controller
                 ], 404);
             }
 
-            // Заменяем {id} в правиле unique
             $rules = ValidationRules::getRules('update_user');
             $rules['email'] = str_replace('{id}', $id, $rules['email']);
 
