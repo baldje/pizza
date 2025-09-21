@@ -16,32 +16,24 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:api')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/refresh-token', [AuthController::class, 'refreshToken']);
+
+    Route::apiResource('users', UserController::class);
+    Route::apiResource('products', ProductController::class);
+    Route::apiResource('orders', OrderController::class);
+    Route::apiResource('order-items', OrderItemController::class);
+
 });
 
-Route::post('/refresh-token', function (Request $request) {
-    try {
-        // Обновляем токен
-        $newToken = auth()->refresh();
-
-        return response()->json([
-            'access_token' => $newToken,
-            'token_type' => 'bearer',
-            'expires_in' => auth()->factory()->getTTL() * 60,
-        ]);
-    } catch (\Tymon\JWTAuth\Exceptions\TokenInvalidException $e) {
-        return response()->json(['error' => 'Invalid token'], 401);
-    } catch (\Tymon\JWTAuth\Exceptions\JWTException $e) {
-        return response()->json(['error' => 'Token refresh failed'], 401);
-    }
-});
-
-Route::resource('users', UserController::class);
-Route::resource('products', ProductController::class);
-Route::resource('orders', OrderController::class);
 Route::middleware(['auth:api', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [AdminController::class, 'index'])->name('dashboard');
+    Route::get('orders/statistics', [OrderAdminController::class, 'statistics']);
 
-    Route::resource('orders', OrderAdminController::class);
-    Route::resource('products', ProductAdminController::class);
+    Route::apiResource('orders', OrderAdminController::class);
+    Route::put('orders/{order}/status', [OrderAdminController::class, 'updateStatus']);
+
+    Route::apiResource('products', ProductAdminController::class);
+    Route::apiResource('order-items', OrderItemController::class);
+    Route::get('orders/{order}/items', [OrderItemController::class, 'getByOrder']);
 });
 

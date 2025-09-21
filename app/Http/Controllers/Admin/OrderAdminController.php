@@ -3,77 +3,257 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Validation\ExceptionHandler;
+use App\Http\Controllers\Validation\ValidationRules;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\User;
+use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class OrderAdminController extends Controller
 {
-    //TODO update delete
+    /**
+     * Список заказов
+     */
     public function index()
     {
-        $orders = Order::with('user')->get();
-        return response()->json([
-            'success' => true,
-            'message' => 'Заказы админа',
-            'order' => $orders
-        ], 201);
+        try {
+            $orders = Order::with(['user', 'orderItems.product'])->get();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Заказы получены',
+                'orders'  => $orders,
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('OrderAdminController index error: ' . $e->getMessage());
+            return ExceptionHandler::handle(request(), $e);
+        }
     }
 
+    /**
+     * Просмотр конкретного заказа
+     */
+    public function show($id)
+    {
+        try {
+            $order = Order::with(['user', 'orderItems.product'])->find($id);
+
+            if (!$order) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Заказ не найден',
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Заказ получен',
+                'order'   => $order,
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error("OrderAdminController show error - ID: $id - " . $e->getMessage());
+            return ExceptionHandler::handle(request(), $e);
+        }
+    }
+
+    /**
+     * Форма создания заказа
+     */
     public function create()
     {
-        $users = User::all();
-        // $products = Product::all(); // если нужно, можно подключить модель Product
-        return view('admin.orders.create', compact('users'));
+        try {
+            $users = User::all();
+            $products = Product::all();
+
+            return response()->json([
+                'success'  => true,
+                'message'  => 'Форма создания заказа',
+                'users'    => $users,
+                'products' => $products,
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('OrderAdminController create error: ' . $e->getMessage());
+            return ExceptionHandler::handle(request(), $e);
+        }
     }
 
-    // Сохранить новый заказ
+    /**
+     * Создание заказа
+     */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'status' => 'required|string|max:50',
-            'delivery_time' => 'required|date',
-            'delivery_address' => 'required|string'
-            // Добавьте другие необходимые поля
-        ]);
+        try {
+            $validated = $request->validate(
+                ValidationRules::getRules('store_order'),
+                ValidationRules::getMessages('store_order')
+            );
 
-        $order = Order::create($validated);
+            $order = DB::transaction(function () use ($validated) {
+                $order = Order::create([
+                    'user_id'          => $validated['user_id'],
+                    'status'           => $validated['status'],
+                    'delivery_time'    => $validated['delivery_time'],
+                    'delivery_address' => $validated['delivery_address'],
+                ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Заказ создан',
-            'order' => $order
-        ], 201);
+                foreach ($validated['items'] as $item) {
+                    $order->orderItems()->create($item);
+                }
+
+                return $order;
+            });
+
+            $order->load(['user', 'orderItems.product']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Заказ успешно создан',
+                'order'   => $order,
+            ], 201);
+        } catch (\Exception $e) {
+            Log::error("OrderAdminController store error: " . $e->getMessage());
+            return ExceptionHandler::handle($request, $e);
+        }
     }
 
-    // Показать форму редактирования заказа
-    public function edit(Order $order)
+    /**
+     * Форма редактирования заказа
+     */
+    public function edit($id)
     {
-//        $users = User::all();
-//        return view('admin.orders.edit', compact('order', 'users'));
+        try {
+            $order = Order::with(['user', 'orderItems.product'])->find($id);
+
+            if (!$order) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Заказ не найден',
+                ], 404);
+            }
+
+            return response()->json([
+                'success'  => true,
+                'message'  => 'Форма редактирования заказа',
+                'order'    => $order,
+                'users'    => User::all(),
+                'products' => Product::all(),
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error("OrderAdminController edit error - ID: $id - " . $e->getMessage());
+            return ExceptionHandler::handle(request(), $e);
+        }
     }
 
-    // Обновить заказ
-    public function update(Request $request, Order $order)
+    /**
+     * Обновление заказа
+     */
+    public function update(Request $request, $id)
     {
-        $validated = $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'status' => 'required|string|max:50',
-            'total' => 'required|numeric|min:0',
-        ]);
+        try {
+            $order = Order::find($id);
 
-        $order->update($validated);
+            if (!$order) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Заказ не найден',
+                ], 404);
+            }
 
-        return redirect()->route('admin.orders.index')->with('success', 'Заказ обновлен');
+            $validated = $request->validate(
+                ValidationRules::getRules('update_order'),
+                ValidationRules::getMessages('update_order')
+            );
+
+            DB::transaction(function () use ($order, $validated) {
+                $order->update($validated);
+
+                if (isset($validated['items'])) {
+                    $order->orderItems()->delete();
+                    foreach ($validated['items'] as $item) {
+                        $order->orderItems()->create($item);
+                    }
+                }
+            });
+
+            $order->load(['user', 'orderItems.product']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Заказ успешно обновлён',
+                'order'   => $order,
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error("OrderAdminController update error - ID: $id - " . $e->getMessage());
+            return ExceptionHandler::handle($request, $e);
+        }
     }
 
-    // Удалить заказ
-    public function destroy(Order $order)
+    /**
+     * Удаление заказа
+     */
+    public function destroy($id)
     {
-        $order->delete();
+        try {
+            $order = Order::find($id);
 
-        return redirect()->route('admin.orders.index')->with('success', 'Заказ удалён');
+            if (!$order) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Заказ не найден',
+                ], 404);
+            }
+
+            DB::transaction(function () use ($order) {
+                $order->orderItems()->delete();
+                $order->delete();
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Заказ успешно удалён',
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error("OrderAdminController destroy error - ID: $id - " . $e->getMessage());
+            return ExceptionHandler::handle(request(), $e);
+        }
+    }
+
+    /**
+     * Обновление статуса заказа
+     */
+    public function updateStatus(Request $request, $id)
+    {
+        try {
+            $order = Order::find($id);
+
+            if (!$order) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Заказ не найден',
+                ], 404);
+            }
+
+            $validated = $request->validate(
+                ValidationRules::getRules('update_order_status'),
+                ValidationRules::getMessages('update_order_status')
+            );
+
+            DB::transaction(function () use ($order, $validated) {
+                $order->update(['status' => $validated['status']]);
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Статус заказа обновлён',
+                'order'   => $order->fresh(),
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error("OrderAdminController updateStatus error - ID: $id - " . $e->getMessage());
+            return ExceptionHandler::handle($request, $e);
+        }
     }
 }
