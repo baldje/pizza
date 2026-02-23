@@ -1,0 +1,44 @@
+# Создайте .gitignore
+cat > .gitignore << 'EOF'
+# Laravel
+/storage/*
+!/storage/app
+!/storage/framework
+!/storage/logs
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/testing/*
+/storage/framework/views/*.php
+/storage/logs/*.log
+/bootstrap/cache/*.php
+
+# Windows paths
+[Cc]:/
+[Dd]:/
+[Ee]:/
+/*.bat
+/*.exe
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Dependencies
+/vendor
+/node_modules
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Cache
+.phpunit.result.cache
+composer.lock
+package-lock.json
+
+# Docker
+docker-compose.override.yml
+EOF
