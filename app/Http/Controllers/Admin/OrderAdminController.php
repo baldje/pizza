@@ -15,6 +15,12 @@ use Illuminate\Support\Facades\Log;
 
 class OrderAdminController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth:api');
+        $this->middleware('admin');
+    }
+
     /**
      * Список заказов
      */

@@ -5,7 +5,6 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Symfony\Component\HttpFoundation\Response;
 
 class AdminMiddleware
 {
@@ -16,10 +15,22 @@ class AdminMiddleware
      */
     public function handle($request, Closure $next)
     {
-        if (!auth()->check() || !auth()->user()->isAdmin()) {
-            abort(403, 'Unauthorized');
+        // Проверяем авторизацию
+        if (!auth()->check()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Не авторизован'
+            ], 401);
         }
+
+        // Проверяем права администратора
+        if (!auth()->user()->is_admin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Доступ запрещен'
+            ], 403);
+        }
+
         return $next($request);
     }
-
 }

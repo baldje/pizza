@@ -11,17 +11,7 @@ class ValidationRulesHandler
     {
         $validationData = self::getValidationData($context);
 
-        $rules = $validationData['rules'] ?? [];
-        $messages = $validationData['messages'] ?? [];
-
-        // Добавляем сообщения к правилам в формате Laravel
-        foreach ($rules as $field => &$rule) {
-            if (isset($messages[$field])) {
-                $rule .= '|' . $messages[$field];
-            }
-        }
-
-        return $rules;
+        return $validationData['rules'] ?? [];
     }
 
     /**
@@ -30,17 +20,7 @@ class ValidationRulesHandler
     public static function getMessages(string $context): array
     {
         $validationData = self::getValidationData($context);
-        $messages = $validationData['messages'] ?? [];
-
-        // Фильтруем только сообщения (убираем правила)
-        $filteredMessages = [];
-        foreach ($messages as $field => $message) {
-            if (is_string($message) && !str_contains($message, '|')) {
-                $filteredMessages[$field] = $message;
-            }
-        }
-
-        return $filteredMessages;
+        return $validationData['messages'] ?? [];
     }
 
     /**
@@ -60,11 +40,14 @@ class ValidationRulesHandler
                     'is_admin' => 'boolean',
                 ],
                 'messages' => [
-                    'name' => 'message:Имя обязательно для заполнения',
-                    'email' => 'message:Email обязателен для заполнения',
+                    'name.required' => 'Имя обязательно для заполнения',
+                    'name.string' => 'Имя должно быть строкой',
+                    'name.max' => 'Имя не должно превышать 255 символов',
+                    'email.required' => 'Email обязателен для заполнения',
                     'email.email' => 'Неверный формат email',
                     'email.unique' => 'Пользователь с таким email уже существует',
-                    'password' => 'message:Пароль обязателен для заполнения',
+                    'email.max' => 'Email не должен превышать 255 символов',
+                    'password.required' => 'Пароль обязателен для заполнения',
                     'password.min' => 'Пароль должен содержать минимум 6 символов',
                 ]
             ],
@@ -79,10 +62,14 @@ class ValidationRulesHandler
                     'is_admin' => 'boolean',
                 ],
                 'messages' => [
-                    'name' => 'message:Имя обязательно для заполнения',
-                    'email' => 'message:Email обязателен для заполнения',
+                    'name.required' => 'Имя обязательно для заполнения',
+                    'name.string' => 'Имя должно быть строкой',
+                    'name.max' => 'Имя не должно превышать 255 символов',
+                    'email.required' => 'Email обязателен для заполнения',
                     'email.email' => 'Неверный формат email',
                     'email.unique' => 'Пользователь с таким email уже существует',
+                    'email.max' => 'Email не должен превышать 255 символов',
+                    'password.required' => 'Пароль обязателен для заполнения',
                     'password.min' => 'Пароль должен содержать минимум 6 символов',
                 ]
             ],
@@ -94,11 +81,14 @@ class ValidationRulesHandler
                     'password' => 'required|string|min:6|confirmed',
                 ],
                 'messages' => [
-                    'name' => 'message:Имя обязательно для заполнения',
-                    'email' => 'message:Email обязателен для заполнения',
+                    'name.required' => 'Имя обязательно для заполнения',
+                    'name.string' => 'Имя должно быть строкой',
+                    'name.max' => 'Имя не должно превышать 255 символов',
+                    'email.required' => 'Email обязателен для заполнения',
                     'email.email' => 'Неверный формат email',
                     'email.unique' => 'Пользователь с таким email уже существует',
-                    'password' => 'message:Пароль обязателен для заполнения',
+                    'email.max' => 'Email не должен превышать 255 символов',
+                    'password.required' => 'Пароль обязателен для заполнения',
                     'password.min' => 'Пароль должен содержать минимум 6 символов',
                     'password.confirmed' => 'Пароли не совпадают',
                 ]
@@ -110,9 +100,9 @@ class ValidationRulesHandler
                     'password' => 'required|string',
                 ],
                 'messages' => [
-                    'email' => 'message:Email обязателен для заполнения',
+                    'email.required' => 'Email обязателен для заполнения',
                     'email.email' => 'Неверный формат email',
-                    'password' => 'message:Пароль обязателен для заполнения',
+                    'password.required' => 'Пароль обязателен для заполнения',
                 ]
             ],
 
@@ -129,23 +119,24 @@ class ValidationRulesHandler
                     'items.*.price' => 'required|numeric|min:0.01',
                 ],
                 'messages' => [
-                    'user_id' => 'message:ID пользователя обязательно для заполнения',
+                    'user_id.required' => 'ID пользователя обязательно для заполнения',
                     'user_id.exists' => 'Пользователь не найден',
-                    'status' => 'message:Статус обязателен для заполнения',
+                    'status.required' => 'Статус обязателен для заполнения',
                     'status.in' => 'Недопустимый статус заказа',
-                    'delivery_time' => 'message:Время доставки обязательно для заполнения',
+                    'delivery_time.required' => 'Время доставки обязательно для заполнения',
                     'delivery_time.date' => 'Неверный формат времени доставки',
                     'delivery_time.after' => 'Время доставки должно быть в будущем',
-                    'delivery_address' => 'message:Адрес доставки обязателен для заполнения',
+                    'delivery_address.required' => 'Адрес доставки обязателен для заполнения',
                     'delivery_address.max' => 'Адрес доставки не должен превышать 500 символов',
-                    'items' => 'message:Добавьте хотя бы один товар в заказ',
+                    'items.required' => 'Добавьте хотя бы один товар в заказ',
                     'items.min' => 'Добавьте хотя бы один товар в заказ',
-                    'items.*.product_id' => 'message:ID товара обязательно для заполнения',
+                    'items.*.product_id.required' => 'ID товара обязательно для заполнения',
                     'items.*.product_id.exists' => 'Товар не найден',
-                    'items.*.quantity' => 'message:Количество обязательно для заполнения',
+                    'items.*.quantity.required' => 'Количество обязательно для заполнения',
                     'items.*.quantity.integer' => 'Количество должно быть целым числом',
                     'items.*.quantity.min' => 'Количество должно быть не менее 1',
-                    'items.*.price' => 'message:Цена обязательна для заполнения',
+                    'items.*.price.required' => 'Цена обязательна для заполнения',
+                    'items.*.price.numeric' => 'Цена должна быть числом',
                     'items.*.price.min' => 'Цена должна быть положительной',
                 ]
             ],
@@ -162,22 +153,23 @@ class ValidationRulesHandler
                     'items.*.price' => 'required_with:items|numeric|min:0.01',
                 ],
                 'messages' => [
-                    'user_id' => 'message:ID пользователя обязательно для заполнения',
+                    'user_id.required' => 'ID пользователя обязательно для заполнения',
                     'user_id.exists' => 'Пользователь не найден',
-                    'status' => 'message:Статус обязателен для заполнения',
+                    'status.required' => 'Статус обязателен для заполнения',
                     'status.in' => 'Недопустимый статус заказа',
-                    'delivery_time' => 'message:Время доставки обязательно для заполнения',
+                    'delivery_time.required' => 'Время доставки обязательно для заполнения',
                     'delivery_time.date' => 'Неверный формат времени доставки',
-                    'delivery_address' => 'message:Адрес доставки обязателен для заполнения',
+                    'delivery_address.required' => 'Адрес доставки обязателен для заполнения',
                     'delivery_address.max' => 'Адрес доставки не должен превышать 500 символов',
-                    'items' => 'message:Добавьте хотя бы один товар в заказ',
+                    'items.required' => 'Добавьте хотя бы один товар в заказ',
                     'items.min' => 'Добавьте хотя бы один товар в заказ',
-                    'items.*.product_id' => 'message:ID товара обязательно для заполнения',
+                    'items.*.product_id.required' => 'ID товара обязательно для заполнения',
                     'items.*.product_id.exists' => 'Товар не найден',
-                    'items.*.quantity' => 'message:Количество обязательно для заполнения',
+                    'items.*.quantity.required' => 'Количество обязательно для заполнения',
                     'items.*.quantity.integer' => 'Количество должно быть целым числом',
                     'items.*.quantity.min' => 'Количество должно быть не менее 1',
-                    'items.*.price' => 'message:Цена обязательна для заполнения',
+                    'items.*.price.required' => 'Цена обязательна для заполнения',
+                    'items.*.price.numeric' => 'Цена должна быть числом',
                     'items.*.price.min' => 'Цена должна быть положительной',
                 ]
             ],
@@ -187,7 +179,7 @@ class ValidationRulesHandler
                     'status' => 'required|string|in:in_progress,delivering,delivered,canceled',
                 ],
                 'messages' => [
-                    'status' => 'message:Статус обязателен для заполнения',
+                    'status.required' => 'Статус обязателен для заполнения',
                     'status.in' => 'Недопустимый статус заказа',
                 ]
             ],
@@ -201,13 +193,15 @@ class ValidationRulesHandler
                     'category' => 'required|string|in:pizza,drink,snack,dessert',
                 ],
                 'messages' => [
-                    'name' => 'message:Название товара обязательно для заполнения',
+                    'name.required' => 'Название товара обязательно для заполнения',
+                    'name.string' => 'Название товара должно быть строкой',
                     'name.max' => 'Название товара не должно превышать 255 символов',
-                    'description' => 'message:Описание товара обязательно для заполнения',
-                    'price' => 'message:Цена обязательна для заполнения',
+                    'description.required' => 'Описание товара обязательно для заполнения',
+                    'description.string' => 'Описание должно быть строкой',
+                    'price.required' => 'Цена обязательна для заполнения',
                     'price.numeric' => 'Цена должна быть числом',
                     'price.min' => 'Цена должна быть положительной',
-                    'category' => 'message:Категория обязательна для заполнения',
+                    'category.required' => 'Категория обязательна для заполнения',
                     'category.in' => 'Недопустимая категория товара',
                 ]
             ],
@@ -220,13 +214,15 @@ class ValidationRulesHandler
                     'category' => 'sometimes|required|string|in:pizza,drink,snack,dessert',
                 ],
                 'messages' => [
-                    'name' => 'message:Название товара обязательно для заполнения',
+                    'name.required' => 'Название товара обязательно для заполнения',
+                    'name.string' => 'Название товара должно быть строкой',
                     'name.max' => 'Название товара не должно превышать 255 символов',
-                    'description' => 'message:Описание товара обязательно для заполнения',
-                    'price' => 'message:Цена обязательна для заполнения',
+                    'description.required' => 'Описание товара обязательно для заполнения',
+                    'description.string' => 'Описание должно быть строкой',
+                    'price.required' => 'Цена обязательна для заполнения',
                     'price.numeric' => 'Цена должна быть числом',
                     'price.min' => 'Цена должна быть положительной',
-                    'category' => 'message:Категория обязательна для заполнения',
+                    'category.required' => 'Категория обязательна для заполнения',
                     'category.in' => 'Недопустимая категория товара',
                 ]
             ],
@@ -240,13 +236,15 @@ class ValidationRulesHandler
                     'price' => 'required|numeric|min:0.01',
                 ],
                 'messages' => [
-                    'order_id' => 'message:ID заказа обязательно для заполнения',
+                    'order_id.required' => 'ID заказа обязательно для заполнения',
                     'order_id.exists' => 'Заказ не найден',
-                    'product_id' => 'message:ID товара обязательно для заполнения',
+                    'product_id.required' => 'ID товара обязательно для заполнения',
                     'product_id.exists' => 'Товар не найден',
-                    'quantity' => 'message:Количество обязательно для заполнения',
+                    'quantity.required' => 'Количество обязательно для заполнения',
+                    'quantity.integer' => 'Количество должно быть целым числом',
                     'quantity.min' => 'Количество должно быть не менее 1',
-                    'price' => 'message:Цена обязательна для заполнения',
+                    'price.required' => 'Цена обязательна для заполнения',
+                    'price.numeric' => 'Цена должна быть числом',
                     'price.min' => 'Цена должна быть положительной',
                 ]
             ],
@@ -259,13 +257,15 @@ class ValidationRulesHandler
                     'price' => 'sometimes|required|numeric|min:0.01',
                 ],
                 'messages' => [
-                    'order_id' => 'message:ID заказа обязательно для заполнения',
+                    'order_id.required' => 'ID заказа обязательно для заполнения',
                     'order_id.exists' => 'Заказ не найден',
-                    'product_id' => 'message:ID товара обязательно для заполнения',
+                    'product_id.required' => 'ID товара обязательно для заполнения',
                     'product_id.exists' => 'Товар не найден',
-                    'quantity' => 'message:Количество обязательно для заполнения',
+                    'quantity.required' => 'Количество обязательно для заполнения',
+                    'quantity.integer' => 'Количество должно быть целым числом',
                     'quantity.min' => 'Количество должно быть не менее 1',
-                    'price' => 'message:Цена обязательна для заполнения',
+                    'price.required' => 'Цена обязательна для заполнения',
+                    'price.numeric' => 'Цена должна быть числом',
                     'price.min' => 'Цена должна быть положительной',
                 ]
             ],

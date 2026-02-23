@@ -1,15 +1,15 @@
 <?php
 
 namespace Tests\Feature;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\WithoutMiddleware;
 
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Tests\TestCase;
 
 class AuthTest extends TestCase
 {
-    use RefreshDatabase, WithoutMiddleware;
+    use DatabaseTransactions, WithoutMiddleware;
 
     private $validRegisterData;
     private $validLoginData;
@@ -126,13 +126,7 @@ class AuthTest extends TestCase
     /** @test */
     public function it_can_login_with_valid_credentials()
     {
-        // Пропускаем тест если JWT не настроен
-        if (strlen(config('jwt.secret')) < 32) {
-            $this->markTestSkipped('JWT не настроен. Запустите: php artisan jwt:secret');
-            return;
-        }
-
-        // Сначала создаем пользователя
+        // Создаем пользователя
         User::create([
             'name' => 'Test User',
             'email' => 'test@example.com',
@@ -140,13 +134,6 @@ class AuthTest extends TestCase
         ]);
 
         $response = $this->postJson('/api/login', $this->validLoginData);
-
-        // Если JWT ошибка, пропускаем тест
-        if ($response->status() === 500 && str_contains($response->content(), 'Could not create token')) {
-            $this->markTestSkipped('JWT не настроен. Запустите: php artisan jwt:secret');
-            return;
-        }
-
         $response->assertStatus(200)
             ->assertJson([
                 'success' => true,
@@ -221,17 +208,17 @@ class AuthTest extends TestCase
     /** @test */
     public function it_can_logout()
     {
-        $user = User::create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-            'password' => bcrypt('password123'),
+        $user = User::factory()->create(['password' => bcrypt('password')]);
+
+        $loginResponse = $this->postJson('/api/login', [
+            'email' => $user->email,
+            'password' => 'password'
         ]);
+        $token = $loginResponse->json('token');
 
-        $this->actingAs($user);
-
-        $response = $this->postJson('/api/logout');
-
-        $response->assertStatus(200)
+        $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->postJson('/api/logout')
+            ->assertStatus(200)
             ->assertJson([
                 'success' => true,
                 'message' => 'Вы успешно вышли из системы',

@@ -1,17 +1,17 @@
 <?php
 
 namespace Tests\Feature;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\WithoutMiddleware;
 
 use App\Models\Order;
 use App\Models\User;
 use App\Models\Product;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Tests\TestCase;
 
 class OrderTest extends TestCase
 {
-    use RefreshDatabase, WithoutMiddleware;
+    use DatabaseTransactions, WithoutMiddleware;
 
     private $validOrderData;
     private $user;

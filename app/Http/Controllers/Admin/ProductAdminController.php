@@ -12,6 +12,12 @@ use Illuminate\Support\Facades\Log;
 
 class ProductAdminController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth:api');
+        $this->middleware('admin');
+    }
+
     /**
      * Список товаров
      */

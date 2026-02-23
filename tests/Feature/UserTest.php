@@ -1,11 +1,12 @@
 <?php
 
 namespace Tests\Feature;
-
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithoutMiddleware;
+
+use App\Models\User;
 use Tests\TestCase;
+
 
 class UserTest extends TestCase
 {
