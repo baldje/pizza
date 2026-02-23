@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Validation\ExceptionHandler;
-use App\Http\Controllers\Validation\ValidationRules;
+use App\Http\Controllers\Validation\ValidationRulesHandler;
 use App\Models\OrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -62,8 +62,8 @@ class OrderItemController extends Controller
     {
         try {
             $validated = $request->validate(
-                ValidationRules::getRules('store_order_item'),
-                ValidationRules::getMessages('store_order_item')
+                ValidationRulesHandler::getRules('store_order_item'),
+                ValidationRulesHandler::getMessages('store_order_item')
             );
 
             $orderItem = OrderItem::create($validated);
@@ -96,8 +96,8 @@ class OrderItemController extends Controller
             }
 
             $validated = $request->validate(
-                ValidationRules::getRules('update_order_item'),
-                ValidationRules::getMessages('update_order_item')
+                ValidationRulesHandler::getRules('update_order_item'),
+                ValidationRulesHandler::getMessages('update_order_item')
             );
 
             $orderItem->update($validated);

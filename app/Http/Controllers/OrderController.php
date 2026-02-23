@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Validation\ExceptionHandler;
-use App\Http\Controllers\Validation\ValidationRules;
+use App\Http\Controllers\Validation\ValidationRulesHandler;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -63,8 +63,8 @@ class OrderController extends Controller
     {
         try {
             $validated = $request->validate(
-                ValidationRules::getRules('store_order'),
-                ValidationRules::getMessages('store_order')
+                ValidationRulesHandler::getRules('store_order'),
+                ValidationRulesHandler::getMessages('store_order')
             );
 
             $order = DB::transaction(function () use ($validated) {
@@ -111,8 +111,8 @@ class OrderController extends Controller
             }
 
             $validated = $request->validate(
-                ValidationRules::getRules('update_order'),
-                ValidationRules::getMessages('update_order')
+                ValidationRulesHandler::getRules('update_order'),
+                ValidationRulesHandler::getMessages('update_order')
             );
 
             DB::transaction(function () use ($order, $validated) {
@@ -185,8 +185,8 @@ class OrderController extends Controller
             }
 
             $validated = $request->validate(
-                ValidationRules::getRules('update_order_status'),
-                ValidationRules::getMessages('update_order_status')
+                ValidationRulesHandler::getRules('update_order_status'),
+                ValidationRulesHandler::getMessages('update_order_status')
             );
 
             $order->update(['status' => $validated['status']]);

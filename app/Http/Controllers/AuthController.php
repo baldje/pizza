@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Validation\ExceptionHandler;
-use App\Http\Controllers\Validation\ValidationRules;
+use App\Http\Controllers\Validation\ValidationRulesHandler;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -25,8 +25,8 @@ class AuthController extends Controller
     {
         try {
             $validated = $request->validate(
-                ValidationRules::getRules('register'),
-                ValidationRules::getMessages('register')
+                ValidationRulesHandler::getRules('register'),
+                ValidationRulesHandler::getMessages('register')
             );
 
             $userData = [
@@ -58,8 +58,8 @@ class AuthController extends Controller
     {
         try {
             $validated = $request->validate(
-                ValidationRules::getRules('login'),
-                ValidationRules::getMessages('login')
+                ValidationRulesHandler::getRules('login'),
+                ValidationRulesHandler::getMessages('login')
             );
 
             $credentials = $request->only('email', 'password');

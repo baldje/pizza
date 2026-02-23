@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Validation\ExceptionHandler;
-use App\Http\Controllers\Validation\ValidationRules;
+use App\Http\Controllers\Validation\ValidationRulesHandler;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -63,8 +63,8 @@ class ProductController extends Controller
     {
         try {
             $validated = $request->validate(
-                ValidationRules::getRules('store_product'),
-                ValidationRules::getMessages('store_product')
+                ValidationRulesHandler::getRules('store_product'),
+                ValidationRulesHandler::getMessages('store_product')
             );
 
             $product = DB::transaction(function () use ($validated) {
@@ -98,8 +98,8 @@ class ProductController extends Controller
             }
 
             $validated = $request->validate(
-                ValidationRules::getRules('update_product'),
-                ValidationRules::getMessages('update_product')
+                ValidationRulesHandler::getRules('update_product'),
+                ValidationRulesHandler::getMessages('update_product')
             );
 
             DB::transaction(function () use ($product, $validated) {

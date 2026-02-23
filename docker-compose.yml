@@ -35,8 +35,8 @@ services:
             MYSQL_DATABASE: pizza
             MYSQL_USER: user
             MYSQL_PASSWORD: 123qwe
-        ports:
-            - "3307:3306"
+#        ports:
+#            - "3307:3306"
         volumes:
             - dbdata:/var/lib/mysql
         networks:

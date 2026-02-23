@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Validation\ExceptionHandler;
-use App\Http\Controllers\Validation\ValidationRules;
+use App\Http\Controllers\Validation\ValidationRulesHandler;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -63,8 +63,8 @@ class UserController extends Controller
     {
         try {
             $validated = $request->validate(
-                ValidationRules::getRules('store_user'),
-                ValidationRules::getMessages('store_user')
+                ValidationRulesHandler::getRules('store_user'),
+                ValidationRulesHandler::getMessages('store_user')
             );
 
             $validated['password'] = Hash::make($validated['password']);
@@ -96,12 +96,12 @@ class UserController extends Controller
                 ], 404);
             }
 
-            $rules = ValidationRules::getRules('update_user');
+            $rules = ValidationRulesHandler::getRules('update_user');
             $rules['email'] = str_replace('{id}', $id, $rules['email']);
 
             $validated = $request->validate(
                 $rules,
-                ValidationRules::getMessages('update_user')
+                ValidationRulesHandler::getMessages('update_user')
             );
 
             if (isset($validated['password'])) {

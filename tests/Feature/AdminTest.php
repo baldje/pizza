@@ -278,3 +278,5 @@ class AdminTest extends TestCase
         $this->assertDatabaseMissing('products', ['id' => $product->id]);
     }
 }
+
+

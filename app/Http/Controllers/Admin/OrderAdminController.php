@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Validation\ExceptionHandler;
-use App\Http\Controllers\Validation\ValidationRules;
+use App\Http\Controllers\Validation\ValidationRulesHandler;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\User;
@@ -61,35 +61,14 @@ class OrderAdminController extends Controller
     }
 
     /**
-     * Форма создания заказа
-     */
-    public function create()
-    {
-        try {
-            $users = User::all();
-            $products = Product::all();
-
-            return response()->json([
-                'success'  => true,
-                'message'  => 'Форма создания заказа',
-                'users'    => $users,
-                'products' => $products,
-            ], 200);
-        } catch (\Exception $e) {
-            Log::error('OrderAdminController create error: ' . $e->getMessage());
-            return ExceptionHandler::handle(request(), $e);
-        }
-    }
-
-    /**
      * Создание заказа
      */
     public function store(Request $request)
     {
         try {
             $validated = $request->validate(
-                ValidationRules::getRules('store_order'),
-                ValidationRules::getMessages('store_order')
+                ValidationRulesHandler::getRules('store_order'),
+                ValidationRulesHandler::getMessages('store_order')
             );
 
             $order = DB::transaction(function () use ($validated) {
@@ -164,8 +143,8 @@ class OrderAdminController extends Controller
             }
 
             $validated = $request->validate(
-                ValidationRules::getRules('update_order'),
-                ValidationRules::getMessages('update_order')
+                ValidationRulesHandler::getRules('update_order'),
+                ValidationRulesHandler::getMessages('update_order')
             );
 
             DB::transaction(function () use ($order, $validated) {
@@ -238,8 +217,8 @@ class OrderAdminController extends Controller
             }
 
             $validated = $request->validate(
-                ValidationRules::getRules('update_order_status'),
-                ValidationRules::getMessages('update_order_status')
+                ValidationRulesHandler::getRules('update_order_status'),
+                ValidationRulesHandler::getMessages('update_order_status')
             );
 
             DB::transaction(function () use ($order, $validated) {
